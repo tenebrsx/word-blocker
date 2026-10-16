@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-555" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-native-F05138?logo=swift&logoColor=white" alt="Swift">
 </p>
+<p align="center"><b>On Linux?</b> See <a href="linux/">WordBlocker for Linux</a>.</p>
 
 A native, high-performance background utility written in Swift for macOS that prevents forbidden words from being typed system-wide by automatically erasing them via synthetic backspaces upon detection.
 

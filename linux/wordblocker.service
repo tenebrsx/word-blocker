@@ -1,0 +1,11 @@
+[Unit]
+Description=WordBlocker - block chosen words as you type
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/wordblocker run
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
