@@ -1,5 +1,7 @@
 .PHONY: all build run test clean
 
+export DEVELOPER_DIR = /Library/Developer/CommandLineTools
+
 all: build
 
 build:
@@ -11,7 +13,9 @@ run:
 	@./build.sh run
 
 test:
-	@swiftc -target arm64-apple-macos14.0 -Xcc -ivfsoverlay -Xcc vfs.yaml \
+	@/Library/Developer/CommandLineTools/usr/bin/swiftc \
+		-sdk /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \
+		-target arm64-apple-macos14.0 -Xcc -ivfsoverlay -Xcc vfs.yaml \
 		Sources/Storage/WordStore.swift \
 		Sources/Core/PermissionsManager.swift \
 		Sources/Core/ObfuscationNormalizer.swift \

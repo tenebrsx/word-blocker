@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
@@ -57,8 +59,12 @@ SOURCES=(
 )
 
 echo "Compiling Swift sources..."
-swiftc \
+SWIFTC_BIN="/Library/Developer/CommandLineTools/usr/bin/swiftc"
+if [ ! -f "$SWIFTC_BIN" ]; then SWIFTC_BIN="swiftc"; fi
+
+"$SWIFTC_BIN" \
     -O \
+    -sdk "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk" \
     -target arm64-apple-macos14.0 \
     -Xcc -ivfsoverlay -Xcc "$DIR/vfs.yaml" \
     "${SOURCES[@]}" \

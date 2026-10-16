@@ -106,37 +106,35 @@ public final class EventTapManager {
         }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-
-        // 3. Modifier keys: Reset buffer on Command (Cmd+C/V/A) or Control shortcuts
         let flags = event.flags
-        if flags.contains(.maskCommand) || flags.contains(.maskControl) {
-            // Check Cmd+Ctrl+F (0x03) full screen toggle shortcut
-            if flags.contains(.maskCommand) && flags.contains(.maskControl) && keyCode == 0x03 {
-                if WordStore.shared.isCinemaModeEnabled && CinemaModeManager.shared.isFrontAppFullScreen() {
+
+        // 3. Cinema Mode Interception (Escape 0x35 or 'F' key 0x03)
+        let isEscape = (keyCode == 0x35)
+        let isFKey = (keyCode == 0x03)
+        let isCmdCtrlF = flags.contains(.maskCommand) && flags.contains(.maskControl)
+        let isPlainF = !flags.contains(.maskCommand) && !flags.contains(.maskControl) && !flags.contains(.maskAlternate)
+
+        if isEscape || (isFKey && (isCmdCtrlF || isPlainF)) {
+            if WordStore.shared.isCinemaModeEnabled && CinemaModeManager.shared.isFrontAppFullScreen() {
+                // For plain 'f', ensure the user is not actively typing in an editable text field
+                if isEscape || isCmdCtrlF || !CinemaModeManager.shared.isFocusedElementEditable() {
                     if CinemaModeManager.shared.handleExitAttempt() {
                         WordBufferEngine.shared.reset()
-                        return nil
+                        return nil // Suppress Escape / F key so media stays in full screen, and show the cinema pop up!
                     }
                 }
             }
+        }
+
+        // 4. Modifier keys: Reset buffer on Command (Cmd+C/V/A) or Control shortcuts
+        if flags.contains(.maskCommand) || flags.contains(.maskControl) {
             WordBufferEngine.shared.reset()
             return Unmanaged.passRetained(event)
         }
 
-        // 4. Handle Backspace (0x33 / 51)
+        // 5. Handle Backspace (0x33 / 51)
         if keyCode == 0x33 {
             WordBufferEngine.shared.handleBackspace()
-            return Unmanaged.passRetained(event)
-        }
-
-        // 5. Cinema Mode Escape Interception (0x35 is Escape)
-        if keyCode == 0x35 {
-            WordBufferEngine.shared.reset()
-            if WordStore.shared.isCinemaModeEnabled && CinemaModeManager.shared.isFrontAppFullScreen() {
-                if CinemaModeManager.shared.handleExitAttempt() {
-                    return nil // Suppress Escape key so media stays in full screen!
-                }
-            }
             return Unmanaged.passRetained(event)
         }
 

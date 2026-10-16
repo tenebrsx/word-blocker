@@ -174,4 +174,72 @@ public final class ActionDispatcher {
             }
         }
     }
+
+    /// Synthesizes a single virtual keycode with syntheticEventTag.
+    public func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], pid: pid_t? = nil, completion: (() -> Void)? = nil) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) else {
+            completion?()
+            return
+        }
+        keyDown.flags = flags
+        keyUp.flags = flags
+        keyDown.setIntegerValueField(.eventSourceUserData, value: ActionDispatcher.syntheticEventTag)
+        keyUp.setIntegerValueField(.eventSourceUserData, value: ActionDispatcher.syntheticEventTag)
+
+        if let pid = pid {
+            keyDown.postToPid(pid)
+            keyUp.postToPid(pid)
+        }
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+        completion?()
+    }
+
+    /// Forces the target application back into full-screen mode to prevent unauthorized exits (e.g. clicking the player button).
+    public func reEnterFullScreen(for targetApp: NSRunningApplication?, completion: (() -> Void)? = nil) {
+        guard let app = targetApp ?? NSWorkspace.shared.frontmostApplication else {
+            completion?()
+            return
+        }
+        let pid = app.processIdentifier
+
+        // 1. Activate the target application so it can receive full-screen commands
+        if #available(macOS 14.0, *) {
+            app.activate()
+        } else {
+            app.activate(options: .activateIgnoringOtherApps)
+        }
+
+        // 2. Direct Accessibility attribute to restore full screen
+        let appRef = AXUIElementCreateApplication(pid)
+        var windowVal: CFTypeRef?
+        if AXUIElementCopyAttributeValue(appRef, kAXFocusedWindowAttribute as CFString, &windowVal) != .success || windowVal == nil {
+            AXUIElementCopyAttributeValue(appRef, kAXMainWindowAttribute as CFString, &windowVal)
+        }
+        if let window = windowVal {
+            let win = window as! AXUIElement
+            AXUIElementSetAttributeValue(win, "AXFullScreen" as CFString, kCFBooleanTrue)
+
+            // Also check full-screen / zoom button
+            var btnVal: CFTypeRef?
+            if AXUIElementCopyAttributeValue(win, "AXFullScreenButton" as CFString, &btnVal) == .success,
+               let btn = btnVal {
+                AXUIElementPerformAction(btn as! AXUIElement, kAXPressAction as CFString)
+            }
+        }
+
+        // 3. Post 'f' key for web video players (YouTube, Netflix, Vimeo)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
+            self?.postKey(keyCode: 0x03, pid: pid) // 'f' key
+        }
+
+        // 4. Post Cmd+Ctrl+F for macOS native full-screen windows
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) { [weak self] in
+            self?.postToggleFullScreenShortcut(pid: pid) {
+                completion?()
+            }
+        }
+    }
 }

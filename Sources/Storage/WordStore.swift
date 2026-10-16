@@ -241,6 +241,7 @@ public final class WordStore {
         }
         set {
             defaults.set(newValue, forKey: cinemaModeEnabledKey)
+            NotificationCenter.default.post(name: Notification.Name("CinemaModeStateChanged"), object: nil)
             onCinemaModeChanged?()
         }
     }
