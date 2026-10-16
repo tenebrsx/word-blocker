@@ -53,8 +53,8 @@ public final class ActionDispatcher {
     }
 
     /// Synthesizes Cmd+W to close the active tab in the frontmost browser.
-    public func closeCurrentTab(completion: (() -> Void)? = nil) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+    public func closeCurrentTab(delay: TimeInterval = 0.05, completion: (() -> Void)? = nil) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             let source = CGEventSource(stateID: .combinedSessionState)
             let wKeyCode: CGKeyCode = 0x0D // 'w' key
             guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: wKeyCode, keyDown: true),

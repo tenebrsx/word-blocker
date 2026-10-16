@@ -582,7 +582,13 @@ public final class WordStore {
             let cleanBlocked = normalizeWebsiteInput(domain)
             if cleanBlocked.contains("/") {
                 // Path-based match (e.g. reddit.com/r/all)
-                if fullLower.hasPrefix(cleanBlocked) {
+                // Match the host (including subdomains like m.youtube.com) and the path prefix.
+                let parts = cleanBlocked.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+                let blockedHost = String(parts[0])
+                let blockedPath = parts.count > 1 ? "/" + String(parts[1]) : "/"
+                let pathPart = fullLower.dropFirst(host.count)
+                let hostMatches = host == blockedHost || host.hasSuffix("." + blockedHost)
+                if hostMatches && (pathPart.hasPrefix(blockedPath) || fullLower.hasPrefix(cleanBlocked)) {
                     return (matchedDomain: domain, note: websiteNotesMap[domain])
                 }
             } else {

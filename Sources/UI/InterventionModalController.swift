@@ -44,6 +44,21 @@ public final class InterventionModalController: NSWindowController {
     private var button3: NSButton!
 
     // Callbacks
+    /// True while the blocked-website gate is the content currently on screen.
+    public private(set) var isShowingBlockedWebsite = false
+    /// Called when a blocked-website gate is replaced by another alert before the user answered it.
+    private var onWebsiteGateAbandoned: (() -> Void)?
+
+    public var isPanelVisible: Bool { panel.isVisible }
+
+    private func beginPresentation(isWebsiteGate: Bool) {
+        if let abandoned = onWebsiteGateAbandoned {
+            onWebsiteGateAbandoned = nil
+            abandoned()
+        }
+        isShowingBlockedWebsite = isWebsiteGate
+    }
+
     private var onButton1Clicked: (() -> Void)?
     private var onButton2Clicked: (() -> Void)?
     private var onButton3Clicked: (() -> Void)?
@@ -166,6 +181,7 @@ public final class InterventionModalController: NSWindowController {
     /// Displays the top-right notification bubble for typed blocked words:
     /// Keeps the custom reminder note box, removes all emojis, removes the censored word, and provides a clean Dismiss button.
     public func showBlockedWord(word: String, note: String) {
+        beginPresentation(isWebsiteGate: false)
         let width: CGFloat = 380
         let height: CGFloat = 180
         panel.setContentSize(NSSize(width: width, height: height))
@@ -219,8 +235,11 @@ public final class InterventionModalController: NSWindowController {
         domain: String,
         note: String,
         onLeave: @escaping () -> Void,
-        onAllow: @escaping (Int) -> Void
+        onAllow: @escaping (Int) -> Void,
+        onAbandoned: (() -> Void)? = nil
     ) {
+        beginPresentation(isWebsiteGate: true)
+        onWebsiteGateAbandoned = onAbandoned
         let width: CGFloat = 410
         let height: CGFloat = 210
         panel.setContentSize(NSSize(width: width, height: height))
@@ -288,6 +307,7 @@ public final class InterventionModalController: NSWindowController {
         onStay: @escaping () -> Void,
         onExit: @escaping () -> Void
     ) {
+        beginPresentation(isWebsiteGate: false)
         let width: CGFloat = 410
         let height: CGFloat = 210
         panel.setContentSize(NSSize(width: width, height: height))
@@ -346,6 +366,7 @@ public final class InterventionModalController: NSWindowController {
         onKeepOn: @escaping () -> Void,
         onDisable: @escaping () -> Void
     ) {
+        beginPresentation(isWebsiteGate: false)
         let width: CGFloat = 410
         let height: CGFloat = 210
         panel.setContentSize(NSSize(width: width, height: height))
@@ -404,6 +425,7 @@ public final class InterventionModalController: NSWindowController {
         onStay: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
+        beginPresentation(isWebsiteGate: false)
         let width: CGFloat = 410
         let height: CGFloat = 210
         panel.setContentSize(NSSize(width: width, height: height))
@@ -494,6 +516,8 @@ public final class InterventionModalController: NSWindowController {
     }
 
     private func dismissModal(completion: (() -> Void)? = nil) {
+        isShowingBlockedWebsite = false
+        onWebsiteGateAbandoned = nil
         guard let screen = NSScreen.main else {
             self.panel.orderOut(nil)
             completion?()
